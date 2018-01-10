@@ -7,8 +7,6 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-/* eslint-disable import/no-extraneous-dependencies */
-
 const path = require('path');
 const fm = require('front-matter');
 const MarkdownIt = require('markdown-it');
