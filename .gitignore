@@ -6,9 +6,6 @@ node_modules/
 # Compiled output
 build
 
-# Runtime data
-database.sqlite
-
 # Test coverage
 coverage
 
@@ -16,14 +13,13 @@ coverage
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+firebase-debug.log*
+newrelic_agent.log*
 
 # Editors and IDEs
 .idea
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 
 # Misc
 .DS_Store
+.env
+newrelic.js

@@ -8,39 +8,29 @@
  */
 
 import path from 'path';
-import Promise from 'bluebird';
 import express from 'express';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import requestLanguage from 'express-request-language';
 import bodyParser from 'body-parser';
-import expressJwt, { UnauthorizedError as Jwt401Error } from 'express-jwt';
-import expressGraphQL from 'express-graphql';
-import jwt from 'jsonwebtoken';
 import nodeFetch from 'node-fetch';
 import React from 'react';
 import ReactDOM from 'react-dom/server';
-import { getDataFromTree } from 'react-apollo';
 import PrettyError from 'pretty-error';
-import { IntlProvider } from 'react-intl';
-
-import './serverIntlPolyfill';
-import createApolloClient from './core/createApolloClient';
 import App from './components/App';
 import Html from './components/Html';
 import { ErrorPageWithoutStyle } from './routes/error/ErrorPage';
-import errorPageStyle from './routes/error/ErrorPage.css';
+import errorPageStyle from './routes/error/ErrorPage.scss';
 import createFetch from './createFetch';
-import passport from './passport';
 import router from './router';
-import models from './data/models';
-import schema from './data/schema';
 import assets from './assets.json'; // eslint-disable-line import/no-unresolved
 import configureStore from './store/configureStore';
 import { setRuntimeVariable } from './actions/runtime';
-import { setLocale } from './actions/intl';
 import config from './config';
 
 const app = express();
+
+// Compression
+app.use(compression());
 
 //
 // Tell any CSS tooling (such as Material UI) to use all vendor prefixes if the
@@ -49,114 +39,54 @@ const app = express();
 global.navigator = global.navigator || {};
 global.navigator.userAgent = global.navigator.userAgent || 'all';
 
+if (process.env.NODE_ENV !== 'production') {
+  app.enable('trust proxy', 'loopback');
+}
+
 //
 // Register Node.js middleware
 // -----------------------------------------------------------------------------
 app.use(express.static(path.resolve(__dirname, 'public')));
 app.use(cookieParser());
-app.use(
-  requestLanguage({
-    languages: config.locales,
-    queryName: 'lang',
-    cookie: {
-      name: 'lang',
-      options: {
-        path: '/',
-        maxAge: 3650 * 24 * 3600 * 1000, // 10 years in miliseconds
-      },
-      url: '/lang/{language}',
-    },
-  }),
-);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 //
 // Authentication
 // -----------------------------------------------------------------------------
-app.use(
-  expressJwt({
-    secret: config.auth.jwt.secret,
-    credentialsRequired: false,
-    getToken: req => req.cookies.id_token,
-  }),
-);
-// Error handler for express-jwt
-app.use((err, req, res, next) => {
-  // eslint-disable-line no-unused-vars
-  if (err instanceof Jwt401Error) {
-    console.error('[express-jwt-error]', req.cookies.id_token);
-    // `clearCookie`, otherwise user can't use web-app until cookie expires
-    res.clearCookie('id_token');
+app.use((req, res, next) => {
+  if (!req.query.sessionID) {
+    next();
+    return;
   }
-  next(err);
+
+  res.cookie('sid', req.query.sessionID, {
+    ...(req.query.maxAge ? { maxAge: req.query.maxAge } : {}),
+    httpOnly: true,
+  });
+
+  res.redirect(
+    req.originalUrl
+      .replace(/[?&]sessionID=[^&]+/, '')
+      .replace(/[?&]maxAge=[^&]+/, ''),
+  );
 });
-
-app.use(passport.initialize());
-
-if (__DEV__) {
-  app.enable('trust proxy');
-}
-app.get(
-  '/login/facebook',
-  passport.authenticate('facebook', {
-    scope: ['email', 'user_location'],
-    session: false,
-  }),
-);
-app.get(
-  '/login/facebook/return',
-  passport.authenticate('facebook', {
-    failureRedirect: '/login',
-    session: false,
-  }),
-  (req, res) => {
-    const expiresIn = 60 * 60 * 24 * 180; // 180 days
-    const token = jwt.sign(req.user, config.auth.jwt.secret, { expiresIn });
-    res.cookie('id_token', token, { maxAge: 1000 * expiresIn, httpOnly: true });
-    res.redirect('/');
-  },
-);
-
-//
-// Register API middleware
-// -----------------------------------------------------------------------------
-const graphqlMiddleware = expressGraphQL(req => ({
-  schema,
-  graphiql: __DEV__,
-  rootValue: { request: req },
-  pretty: __DEV__,
-}));
-
-app.use('/graphql', graphqlMiddleware);
 
 //
 // Register server-side rendering middleware
 // -----------------------------------------------------------------------------
 app.get('*', async (req, res, next) => {
   try {
-    const apolloClient = createApolloClient({
-      schema,
-      rootValue: { request: req },
-    });
-
     // Universal HTTP client
     const fetch = createFetch(nodeFetch, {
       baseUrl: config.api.serverUrl,
       cookie: req.headers.cookie,
-      apolloClient,
     });
-
-    const initialState = {
-      user: req.user || null,
-    };
-
+    const css = new Set();
+    const initialState = {};
     const store = configureStore(initialState, {
       cookie: req.headers.cookie,
-      apolloClient,
       fetch,
-      // I should not use `history` on server.. but how I do redirection? follow universal-router
-      history: null,
     });
 
     store.dispatch(
@@ -165,22 +95,6 @@ app.get('*', async (req, res, next) => {
         value: Date.now(),
       }),
     );
-
-    store.dispatch(
-      setRuntimeVariable({
-        name: 'availableLocales',
-        value: config.locales,
-      }),
-    );
-
-    const locale = req.language;
-    const intl = await store.dispatch(
-      setLocale({
-        locale,
-      }),
-    );
-
-    const css = new Set();
 
     // Global (context) variables that can be easily accessed from any React component
     // https://facebook.github.io/react/docs/context.html
@@ -195,17 +109,12 @@ app.get('*', async (req, res, next) => {
       // You can access redux through react-redux connect
       store,
       storeSubscription: null,
-      // Apollo Client for use with react-apollo
-      client: apolloClient,
-      // intl instance as it can be get with injectIntl
-      intl,
     };
 
     const route = await router.resolve({
       ...context,
       pathname: req.path,
       query: req.query,
-      locale,
     });
 
     if (route.redirect) {
@@ -214,11 +123,9 @@ app.get('*', async (req, res, next) => {
     }
 
     const data = { ...route };
-    const rootComponent = <App context={context}>{route.component}</App>;
-    await getDataFromTree(rootComponent);
-    // this is here because of Apollo redux APOLLO_QUERY_STOP action
-    await Promise.delay(0);
-    data.children = await ReactDOM.renderToString(rootComponent);
+    data.children = ReactDOM.renderToString(
+      <App context={context}>{route.component}</App>,
+    );
     data.styles = [{ id: 'css', cssText: [...css].join('') }];
 
     data.scripts = [assets.vendor.js];
@@ -235,8 +142,6 @@ app.get('*', async (req, res, next) => {
     data.app = {
       apiUrl: config.api.clientUrl,
       state: context.store.getState(),
-      lang: locale,
-      apolloState: context.client.extract(),
     };
 
     const html = ReactDOM.renderToStaticMarkup(<Html {...data} />);
@@ -256,20 +161,14 @@ pe.skipPackage('express');
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  const locale = req.language;
   console.error(pe.render(err));
   const html = ReactDOM.renderToStaticMarkup(
     <Html
       title="Internal Server Error"
       description={err.message}
       styles={[{ id: 'css', cssText: errorPageStyle._getCss() }]} // eslint-disable-line no-underscore-dangle
-      app={{ lang: locale }}
     >
-      {ReactDOM.renderToString(
-        <IntlProvider locale={locale}>
-          <ErrorPageWithoutStyle error={err} />
-        </IntlProvider>,
-      )}
+      {ReactDOM.renderToString(<ErrorPageWithoutStyle error={err} />)}
     </Html>,
   );
   res.status(err.status || 500);
@@ -279,12 +178,9 @@ app.use((err, req, res, next) => {
 //
 // Launch the server
 // -----------------------------------------------------------------------------
-const promise = models.sync().catch(err => console.error(err.stack));
 if (!module.hot) {
-  promise.then(() => {
-    app.listen(config.port, () => {
-      console.info(`The server is running at http://localhost:${config.port}/`);
-    });
+  app.listen(config.port, () => {
+    console.info(`The server is running at http://localhost:${config.port}/`);
   });
 }
 

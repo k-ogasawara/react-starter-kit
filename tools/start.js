@@ -7,6 +7,8 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
+/* eslint-disable import/no-extraneous-dependencies */
+
 import path from 'path';
 import express from 'express';
 import browserSync from 'browser-sync';
@@ -208,8 +210,6 @@ async function start() {
   // Wait until both client-side and server-side bundles are ready
   await clientPromise;
   await serverPromise;
-
-  process.env.MESSAGES_DIR = path.join(__dirname, '../src/messages/');
 
   const timeStart = new Date();
   console.info(`[${format(timeStart)}] Launching server...`);

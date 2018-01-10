@@ -7,6 +7,8 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
+/* eslint-disable import/no-extraneous-dependencies */
+
 import path from 'path';
 import webpack from 'webpack';
 import AssetsPlugin from 'assets-webpack-plugin';
@@ -20,12 +22,7 @@ const isVerbose = process.argv.includes('--verbose');
 const isAnalyze =
   process.argv.includes('--analyze') || process.argv.includes('--analyse');
 
-// Hard choice here...
-// You can enforce this for test environments :-)
-const REACT_INTL_ENFORCE_DESCRIPTIONS = false;
-
 const reScript = /\.(js|jsx|mjs)$/;
-const reGraphql = /\.(graphql|gql)$/;
 const reStyle = /\.(css|less|styl|scss|sass|sss)$/;
 const reImage = /\.(bmp|gif|jpg|jpeg|png|svg)$/;
 
@@ -63,6 +60,7 @@ const config = {
     // Allow absolute paths in imports, e.g. import Button from 'components/Button'
     // Keep in sync with .flowconfig and .eslintrc
     modules: ['node_modules', 'src'],
+    extensions: ['.js', '.jsx', '.json'],
   },
 
   module: {
@@ -119,26 +117,8 @@ const config = {
             // Remove unnecessary React propTypes from the production build
             // https://github.com/oliviertassinari/babel-plugin-transform-react-remove-prop-types
             ...(isDebug ? [] : ['transform-react-remove-prop-types']),
-            [
-              'react-intl',
-              {
-                messagesDir: path.resolve(
-                  __dirname,
-                  '../build/messages/extracted',
-                ),
-                extractSourceLocation: true,
-                enforceDescriptions: REACT_INTL_ENFORCE_DESCRIPTIONS,
-              },
-            ],
           ],
         },
-      },
-
-      // Rules for GraphQL
-      {
-        test: reGraphql,
-        exclude: /node_modules/,
-        loader: 'graphql-tag/loader',
       },
 
       // Rules for Style Sheets
@@ -189,21 +169,13 @@ const config = {
             },
           },
 
-          // Compile Less to CSS
-          // https://github.com/webpack-contrib/less-loader
-          // Install dependencies before uncommenting: yarn add --dev less-loader less
-          // {
-          //   test: /\.less$/,
-          //   loader: 'less-loader',
-          // },
-
           // Compile Sass to CSS
           // https://github.com/webpack-contrib/sass-loader
           // Install dependencies before uncommenting: yarn add --dev sass-loader node-sass
-          // {
-          //   test: /\.(scss|sass)$/,
-          //   loader: 'sass-loader',
-          // },
+          {
+            test: /\.(scss|sass)$/,
+            loader: 'sass-loader',
+          },
         ],
       },
 
@@ -261,15 +233,7 @@ const config = {
       // Return public URL for all assets unless explicitly excluded
       // DO NOT FORGET to update `exclude` list when you adding a new loader
       {
-        exclude: [
-          reScript,
-          reStyle,
-          reImage,
-          reGraphql,
-          /\.json$/,
-          /\.txt$/,
-          /\.md$/,
-        ],
+        exclude: [reScript, reStyle, reImage, /\.json$/, /\.txt$/, /\.md$/],
         loader: 'file-loader',
         options: {
           name: staticAssetName,
@@ -327,7 +291,7 @@ const clientConfig = {
   target: 'web',
 
   entry: {
-    client: ['@babel/polyfill', './src/clientLoader.js'],
+    client: ['@babel/polyfill', './src/client.js'],
   },
 
   plugins: [
@@ -408,7 +372,7 @@ const serverConfig = {
   target: 'node',
 
   entry: {
-    server: ['@babel/polyfill', './src/server.js'],
+    server: ['@babel/polyfill', 'newrelic', './src/server.js'],
   },
 
   output: {

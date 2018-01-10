@@ -7,6 +7,8 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
+/* eslint-disable import/no-extraneous-dependencies */
+
 import hotClient from 'webpack-hot-middleware/client';
 import launchEditorEndpoint from 'react-dev-utils/launchEditorEndpoint';
 import formatWebpackMessages from 'react-dev-utils/formatWebpackMessages';

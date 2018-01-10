@@ -7,6 +7,8 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
+/* eslint-disable import/no-extraneous-dependencies */
+
 import path from 'path';
 import fetch from 'node-fetch';
 import { spawn } from './lib/cp';

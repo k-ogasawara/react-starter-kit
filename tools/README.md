@@ -10,11 +10,6 @@
 * Launches [Browsersync](https://browsersync.io/) and
   [Hot Module Replacement](https://webpack.github.io/docs/hot-module-replacement)
 
-### `yarn run extractMessages` (`extractMessages.js`)
-
-* Extract intl messages from source (`src/**/*.{js,jsx}`)
-* Update messages in `src/messages` directory
-
 ### `yarn run build` (`build.js`)
 
 * Cleans up the output `/build` folder (`clean.js`)
