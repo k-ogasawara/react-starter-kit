@@ -12,7 +12,6 @@ import express from 'express';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
-import nodeFetch from 'node-fetch';
 import React from 'react';
 import ReactDOM from 'react-dom/server';
 import PrettyError from 'pretty-error';
@@ -20,11 +19,9 @@ import App from './components/App';
 import Html from './components/Html';
 import { ErrorPageWithoutStyle } from './routes/error/ErrorPage';
 import errorPageStyle from './routes/error/ErrorPage.scss';
-import createFetch from './createFetch';
 import router from './router';
 import assets from './assets.json'; // eslint-disable-line import/no-unresolved
 import configureStore from './store/configureStore';
-import { setRuntimeVariable } from './actions/runtime';
 import config from './config';
 
 const app = express();
@@ -77,24 +74,11 @@ app.use((req, res, next) => {
 // -----------------------------------------------------------------------------
 app.get('*', async (req, res, next) => {
   try {
-    // Universal HTTP client
-    const fetch = createFetch(nodeFetch, {
-      baseUrl: config.api.serverUrl,
-      cookie: req.headers.cookie,
-    });
     const css = new Set();
     const initialState = {};
     const store = configureStore(initialState, {
       cookie: req.headers.cookie,
-      fetch,
     });
-
-    store.dispatch(
-      setRuntimeVariable({
-        name: 'initialNow',
-        value: Date.now(),
-      }),
-    );
 
     // Global (context) variables that can be easily accessed from any React component
     // https://facebook.github.io/react/docs/context.html
@@ -105,7 +89,6 @@ app.get('*', async (req, res, next) => {
         // eslint-disable-next-line no-underscore-dangle
         styles.forEach(style => css.add(style._getCss()));
       },
-      fetch,
       // You can access redux through react-redux connect
       store,
       storeSubscription: null,
@@ -139,10 +122,7 @@ app.get('*', async (req, res, next) => {
       // eslint-disable-next-line no-console
       console.log('Serializing store...');
     }
-    data.app = {
-      apiUrl: config.api.clientUrl,
-      state: context.store.getState(),
-    };
+    data.state = context.store.getState();
 
     const html = ReactDOM.renderToStaticMarkup(<Html {...data} />);
     res.status(route.status || 200);

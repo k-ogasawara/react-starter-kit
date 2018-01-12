@@ -1,8 +1,8 @@
 import { combineReducers } from 'redux';
-import runtime from './runtime';
+import stream from './stream';
 
 export default function createRootReducer() {
   return combineReducers({
-    runtime,
+    stream,
   });
 }

@@ -7,33 +7,25 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-import 'whatwg-fetch';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import deepForceUpdate from 'react-deep-force-update';
 import queryString from 'query-string';
 import { createPath } from 'history/PathUtils';
 import App from './components/App';
-import createFetch from './createFetch';
 import configureStore from './store/configureStore';
 import { updateMeta } from './DOMUtils';
 import history from './history';
 import router from './router';
 
 // Get initial data
-const app = JSON.parse(
+const state = JSON.parse(
   document.getElementById('initial-data').getAttribute('data-json'),
 );
 
-// Universal HTTP client
-const fetch = createFetch(window.fetch, {
-  baseUrl: app.apiUrl,
-});
-
 // Initialize a new Redux store
 // http://redux.js.org/docs/basics/UsageWithReact.html
-const store = configureStore(app.state, {
-  fetch,
+const store = configureStore(state, {
   history,
 });
 
@@ -51,8 +43,6 @@ const context = {
   },
   store,
   storeSubscription: null,
-  // Universal HTTP client
-  fetch,
 };
 
 const container = document.getElementById('app');

@@ -1,6 +1,5 @@
-export default function createHelpers({ fetch, history }) {
+export default function createHelpers({ history }) {
   return {
     history,
-    fetch,
   };
 }

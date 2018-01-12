@@ -13,6 +13,7 @@ import AssetsPlugin from 'assets-webpack-plugin';
 import nodeExternals from 'webpack-node-externals';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import overrideRules from './lib/overrideRules';
+import { globals } from '../src/config';
 import pkg from '../package.json';
 
 const isDebug = !process.argv.includes('--release');
@@ -298,6 +299,7 @@ const clientConfig = {
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': isDebug ? '"development"' : '"production"',
       'process.env.BROWSER': true,
+      ...globals,
       __DEV__: isDebug,
     }),
 

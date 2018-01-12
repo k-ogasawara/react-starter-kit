@@ -25,7 +25,7 @@ class Html extends React.Component {
       }).isRequired,
     ),
     scripts: PropTypes.arrayOf(PropTypes.string.isRequired),
-    app: PropTypes.object.isRequired, // eslint-disable-line react/forbid-prop-types
+    state: PropTypes.object.isRequired, // eslint-disable-line react/forbid-prop-types
     children: PropTypes.string.isRequired,
   };
 
@@ -35,7 +35,7 @@ class Html extends React.Component {
   };
 
   render() {
-    const { title, description, styles, scripts, app, children } = this.props;
+    const { title, description, styles, scripts, state, children } = this.props;
     return (
       <html lang="ja">
         <head>
@@ -61,7 +61,7 @@ class Html extends React.Component {
           <script
             id="initial-data"
             type="text/plain"
-            data-json={serialize(app)}
+            data-json={serialize(state)}
           />
           {scripts.map(script => <script key={script} src={script} />)}
           {config.analytics.googleTrackingId && (
