@@ -23,6 +23,10 @@ import router from './router';
 import assets from './assets.json'; // eslint-disable-line import/no-unresolved
 import configureStore from './store/configureStore';
 import config from './config';
+import {
+  API_URL_PATH_CATEGORY_SHEET,
+  API_URL_PATH_THUMBNAIL,
+} from './constants';
 
 const app = express();
 
@@ -35,10 +39,6 @@ app.use(compression());
 // -----------------------------------------------------------------------------
 global.navigator = global.navigator || {};
 global.navigator.userAgent = global.navigator.userAgent || 'all';
-
-if (process.env.NODE_ENV !== 'production') {
-  app.enable('trust proxy', 'loopback');
-}
 
 //
 // Register Node.js middleware
@@ -68,6 +68,15 @@ app.use((req, res, next) => {
       .replace(/[?&]maxAge=[^&]+/, ''),
   );
 });
+
+//
+// Register server api
+// -----------------------------------------------------------------------------
+const categorySheet = require('../server/api/categorySheet');
+const thumbnail = require('../server/api/thumbnail');
+
+app.get(API_URL_PATH_CATEGORY_SHEET, categorySheet.get);
+app.get(API_URL_PATH_THUMBNAIL, thumbnail.get);
 
 //
 // Register server-side rendering middleware
