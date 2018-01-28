@@ -23,6 +23,7 @@
     "history": "^4.7.2",
     "isomorphic-style-loader": "^4.0.0",
     "newrelic": "^2.5.0",
+    "lodash": "^4.17.4",
     "node-fetch": "^1.7.3",
     "normalize.css": "^7.0.0",
     "pretty-error": "^2.1.1",
