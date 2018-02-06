@@ -84,30 +84,34 @@ app.get(API_URL_PATH_THUMBNAIL, thumbnail.get);
 app.get('*', async (req, res, next) => {
   try {
     const css = new Set();
+
+    // Enables critical path CSS rendering
+    // https://github.com/kriasoft/isomorphic-style-loader
+    const insertCss = (...styles) => {
+      // eslint-disable-next-line no-underscore-dangle
+      styles.forEach(style => css.add(style._getCss()));
+    };
+
     const initialState = {};
     const store = configureStore(initialState, {
       cookie: req.headers.cookie,
+      // I should not use `history` on server.. but how I do redirection? follow universal-router
+      history: null,
     });
 
     // Global (context) variables that can be easily accessed from any React component
     // https://facebook.github.io/react/docs/context.html
     const context = {
-      // Enables critical path CSS rendering
-      // https://github.com/kriasoft/isomorphic-style-loader
-      insertCss: (...styles) => {
-        // eslint-disable-next-line no-underscore-dangle
-        styles.forEach(style => css.add(style._getCss()));
-      },
+      insertCss,
+      // The twins below are wild, be careful!
+      pathname: req.path,
+      query: req.query,
       // You can access redux through react-redux connect
       store,
       storeSubscription: null,
     };
 
-    const route = await router.resolve({
-      ...context,
-      pathname: req.path,
-      query: req.query,
-    });
+    const route = await router.resolve(context);
 
     if (route.redirect) {
       res.redirect(route.status || 302, route.redirect);
